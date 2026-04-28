@@ -11,10 +11,8 @@
 
 <script async src="https://online-booking.housecallpro.com/script.js?token=c86d8c96ba9e4dd8a01aa19cb024b510&orgName=Desert-Breeze-Mechanical-Contractors"></script>
 <script>
-  // Desktop booking URL
+  // Booking URLs
   var HCP_DIRECT_URL = 'https://online-booking.housecallpro.com/book/Desert-Breeze-Mechanical-Contractors/c86d8c96ba9e4dd8a01aa19cb024b510';
-  
-  // Specific Mobile booking URL
   var HCP_MOBILE_URL = 'https://book.housecallpro.com/book/Desert-Breeze-Mechanical-Contractors/c86d8c96ba9e4dd8a01aa19cb024b510?v2=true';
 
   function isMobile() {
@@ -22,27 +20,67 @@
            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
-  function openHCPBooking() {
-    if (isMobile()) {
-      // Use the mobile-specific URL
-      var targetUrl = HCP_MOBILE_URL;
-      
-      // Strip referrer header to avoid AWS S3 Access Denied errors on HCP mobile
-      var w = window.open('', '_blank');
-      if (w) {
-        w.document.write('<meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=' + targetUrl + '">');
-        w.document.close();
-      } else {
-        window.location.href = targetUrl;
-      }
-    } else {
-      // Desktop logic remains the same
+  // Open URL in a new tab WITHOUT sending a Referer header.
+  // Modern browsers strip the Referer when an anchor has rel="noreferrer".
+  // We synthesize an anchor click — this is more reliable than window.open + document.write,
+  // which is increasingly blocked by mobile browsers (iOS Safari 17+, recent Chrome Android).
+  function openNoReferrer(url) {
+    var a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    // Must be in the DOM for some browsers (Safari) to honor the click
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    // Clean up after a tick
+    setTimeout(function() {
+      if (a.parentNode) a.parentNode.removeChild(a);
+    }, 100);
+  }
+
+  // Wait for the HCP widget script to load (it is async), then run callback.
+  // Falls back after maxWaitMs even if it never appears.
+  function whenHCPReady(cb, maxWaitMs) {
+    var waited = 0;
+    var step = 100;
+    var max = maxWaitMs || 1500;
+    (function poll() {
       if (typeof HCPWidget !== 'undefined' && HCPWidget.openModal) {
-        HCPWidget.openModal();
+        cb(true);
+      } else if (waited >= max) {
+        cb(false);
       } else {
-        window.open(HCP_DIRECT_URL, '_blank');
+        waited += step;
+        setTimeout(poll, step);
       }
+    })();
+  }
+
+  function openHCPBooking(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    if (isMobile()) {
+      // On mobile, the HCP modal isn't great — go straight to the booking page
+      // in a new tab with no Referer (avoids the AWS S3 referrer block).
+      openNoReferrer(HCP_MOBILE_URL);
+      return false;
     }
+
+    // Desktop: prefer HCP's own modal, with a short wait in case the async script
+    // hasn't loaded yet. Fall back to the direct URL.
+    whenHCPReady(function(ready) {
+      if (ready) {
+        try {
+          HCPWidget.openModal();
+        } catch (err) {
+          openNoReferrer(HCP_DIRECT_URL);
+        }
+      } else {
+        openNoReferrer(HCP_DIRECT_URL);
+      }
+    });
+    return false;
   }
 </script>
 <style>
@@ -1031,7 +1069,7 @@
         <li>Old Republic Home Warranty Accepted</li>
       </ul>
       <div class="hero-actions">
-        <button data-token="c86d8c96ba9e4dd8a01aa19cb024b510" data-orgname="Desert-Breeze-Mechanical-Contractors" class="hcp-button btn-gold" onclick="openHCPBooking()" style="cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:800;font-size:inherit;letter-spacing:inherit;border:none;">📅 Book Online — Free Estimate</button>
+        <button class="hcp-button btn-gold" onclick="openHCPBooking()" style="cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:800;font-size:inherit;letter-spacing:inherit;border:none;">📅 Book Online — Free Estimate</button>
         <a href="tel:9157271200" class="btn-outline-white">📞 Call (915) 727-1200</a>
       </div>
       <div style="display:flex;align-items:center;gap:0.7rem;margin-top:1.2rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.13);border-radius:8px;padding:0.55rem 1rem;width:fit-content;">
@@ -1067,8 +1105,6 @@
         </div>
       </div>
       <button
-        data-token="c86d8c96ba9e4dd8a01aa19cb024b510"
-        data-orgname="Desert-Breeze-Mechanical-Contractors"
         class="hcp-button btn-submit"
         onclick="openHCPBooking()"
         style="width:100%;font-size:1rem;padding:1rem;letter-spacing:0.04em;">
@@ -1426,8 +1462,6 @@
     <div style="display:flex;gap:1rem;flex-wrap:wrap;">
       <a href="tel:9157271200" class="btn-navy">📞 Call Now</a>
       <button
-        data-token="c86d8c96ba9e4dd8a01aa19cb024b510"
-        data-orgname="Desert-Breeze-Mechanical-Contractors"
         class="hcp-button btn-navy"
         onclick="openHCPBooking()"
         style="background:rgba(11,31,58,0.12);color:var(--navy);border:2px solid var(--navy);cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.04em;">
@@ -1502,8 +1536,6 @@
         </div>
       </div>
       <button
-        data-token="c86d8c96ba9e4dd8a01aa19cb024b510"
-        data-orgname="Desert-Breeze-Mechanical-Contractors"
         class="hcp-button btn-submit"
         onclick="openHCPBooking()"
         style="width:100%;font-size:1rem;padding:1rem;letter-spacing:0.04em;">
